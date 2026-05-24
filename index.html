@@ -534,73 +534,170 @@
         renderWeek() {
             const ws = new Date(this.currentDate); ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
             const today = new Date();
-            const SLOT_H = 50;
+            const isMobile = window.innerWidth < 768;
+            
+            // 手机端：三个大格子（上午8-12，下午12-18，晚上18-23）
+            // 电脑端：半小时格子
+            const TIME_PERIODS = isMobile ? [
+                { label: '上午 8-12', start: 8, end: 12, height: 120 },
+                { label: '下午 12-18', start: 12, end: 18, height: 120 },
+                { label: '晚上 18-23', start: 18, end: 23, height: 100 }
+            ] : null;
+            
+            const SLOT_H = isMobile ? 0 : 50;
             const toMin = (t) => { const [h, m] = t.split(':').map(Number); return (h - 8) * 60 + m; };
-            const toTop = (min) => (min / 30) * SLOT_H;
-            const toHeight = (s, e) => ((e - s) / 30) * SLOT_H;
+            const toHour = (t) => { const [h, m] = t.split(':').map(Number); return h + m / 60; };
+            
+            // 手机端计算位置
+            const getMobilePosition = (startTime, endTime) => {
+                const startHour = toHour(startTime);
+                const endHour = toHour(endTime);
+                for (let i = 0; i < TIME_PERIODS.length; i++) {
+                    const period = TIME_PERIODS[i];
+                    if (startHour >= period.start && startHour < period.end) {
+                        const periodStart = period.start;
+                        const periodDuration = period.end - period.start;
+                        const blockStart = startHour - periodStart;
+                        const blockEnd = Math.min(endHour, period.end) - periodStart;
+                        const top = (blockStart / periodDuration) * period.height;
+                        const height = Math.max(((blockEnd - blockStart) / periodDuration) * period.height, 30);
+                        return { periodIndex: i, top, height };
+                    }
+                }
+                return { periodIndex: 0, top: 0, height: 30 };
+            };
 
             let h = '<div class="overflow-x-auto"><div class="min-w-800"><div style="display:grid;grid-template-columns:80px repeat(7,1fr)">';
             h += '<div class="text-center py-2 font-medium text-gray-600 bg-gray-100">时间</div>';
             for (let i = 0; i < 7; i++) { const dt = new Date(ws); dt.setDate(ws.getDate() + i); const isT = dt.toDateString() === today.toDateString();
                 h += `<div onclick="app.goDay('${this.fmt(dt)}')" class="text-center py-2 font-medium cursor-pointer ${isT ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}"><div>${WEEKDAYS[i]}</div><div class="text-sm">${dt.getMonth() + 1}/${dt.getDate()}</div></div>`; }
-            h += '<div>';
-            TIME_SLOTS.forEach(slot => { h += `<div class="text-center text-xs text-gray-500 bg-gray-50" style="height:${SLOT_H}px;line-height:${SLOT_H}px">${slot.start}</div>`; });
-            h += '</div>';
-            for (let i = 0; i < 7; i++) {
-                const dt = new Date(ws); dt.setDate(ws.getDate() + i); const ds = this.fmt(dt);
-                h += `<div class="week-col" style="height:calc(28 * ${SLOT_H}px)" onclick="app.openTimeModal('${ds}','08:00','09:00')">`;
-                TIME_SLOTS.forEach(() => { h += `<div class="week-slot-line" style="height:${SLOT_H}px"></div>`; });
-                const timeGroups = this.getTimeGroups(ds);
-                timeGroups.forEach(group => {
-                    const sMin = toMin(group.start), eMin = toMin(group.end);
-                    const top = toTop(sMin);
-                    const height = Math.max(toHeight(sMin, eMin), SLOT_H);
-                    let cls = 'week-block';
-                    let labels = [];
-                    let hasPending = false, pendingId = '', pendingTeacherId = '';
-                    if (group.confirmed.length > 0) {
-                        cls += ' confirmed';
-                        group.confirmed.forEach(b => {
-                            const teacher = this.users.find(u => u.id === b.teacher_id);
-                            labels.push(`<span style="color:${teacher?.color || '#3b82f6'}">● ${teacher?.name || ''}</span> ${SUBJECTS[b.subject] || ''} ${b.start_time}-${b.end_time}`);
-                        });
-                    } else if (group.pending.length > 0) {
-                        hasPending = true;
-                        const pending = group.pending[0];
-                        pendingId = pending.id;
-                        pendingTeacherId = pending.teacher_id;
-                        cls += ' pending';
-                        group.pending.forEach(b => {
-                            const teacher = this.users.find(u => u.id === b.teacher_id);
-                            const subject = b.subject ? SUBJECTS[b.subject] : '待确认';
-                            labels.push(`<span style="color:${teacher?.color || '#f97316'}">● ${teacher?.name || ''}</span> ${subject} ${b.start_time}-${b.end_time}`);
-                        });
-                    } else {
-                        if (group.teacherAvail.length > 0) {
-                            cls += ' teacher-avail';
-                            group.teacherAvail.forEach(a => {
-                                const teacher = this.users.find(u => u.id === a.user_id);
-                                const subject = teacher?.subject ? SUBJECTS[teacher.subject] : '';
-                                labels.push(`<span style="color:${teacher?.color || '#10b981'}">● ${teacher?.name || ''}</span> ${subject} ${a.start_time}-${a.end_time}`);
-                            });
-                        }
-                        if (group.studentAvail.length > 0) {
-                            if (group.teacherAvail.length === 0) cls += ' student-avail';
-                            labels.push(`<span style="color:#3b82f6">● 学生</span> ${group.studentAvail[0].start_time}-${group.studentAvail[0].end_time}`);
-                        }
-                    }
-                    let confirmBtn = '';
-                    if (hasPending && (this.currentUser.role === 'teacher' || this.currentUser.role === 'admin')) {
-                        const isTeacherForThis = this.currentUser.role === 'teacher' && this.currentUser.id === pendingTeacherId;
-                        const isAdmin = this.currentUser.role === 'admin';
-                        if (isTeacherForThis || isAdmin) {
-                            confirmBtn = `<div style="margin-top:4px"><button onclick="event.stopPropagation();app.confirmSchedule('${pendingId}')" class="btn btn-sm" style="background:#10b981;color:#fff;padding:2px 8px;font-size:11px">确认排课</button></div>`;
-                        }
-                    }
-                    const labelHtml = labels.join('<br>');
-                    h += `<div class="${cls}" style="top:${top}px;height:${height}px" onclick="event.stopPropagation();app.openTimeModal('${ds}','${group.start}','${group.end}')">${labelHtml}${confirmBtn}</div>`;
-                });
+            
+            if (isMobile) {
+                // 手机端：三个大格子
+                h += '<div>';
+                TIME_PERIODS.forEach(p => { h += `<div class="text-center text-xs text-gray-500 bg-gray-50 py-2" style="height:${p.height}px;line-height:${p.height}px">${p.label}</div>`; });
                 h += '</div>';
+                const totalHeight = TIME_PERIODS.reduce((sum, p) => sum + p.height, 0);
+                for (let i = 0; i < 7; i++) {
+                    const dt = new Date(ws); dt.setDate(ws.getDate() + i); const ds = this.fmt(dt);
+                    h += `<div class="week-col" style="height:${totalHeight}px" onclick="app.openTimeModal('${ds}','08:00','12:00')">`;
+                    TIME_PERIODS.forEach((p, pi) => {
+                        h += `<div class="week-slot-line" style="height:${p.height}px;border-bottom:1px solid #e5e7eb"><div class="text-xs text-gray-400 p-1">${p.label}</div></div>`;
+                    });
+                    const timeGroups = this.getTimeGroups(ds);
+                    timeGroups.forEach(group => {
+                        const pos = getMobilePosition(group.start, group.end);
+                        let cls = 'week-block';
+                        let labels = [];
+                        let hasPending = false, pendingId = '', pendingTeacherId = '';
+                        if (group.confirmed.length > 0) {
+                            cls += ' confirmed';
+                            group.confirmed.forEach(b => {
+                                const teacher = this.users.find(u => u.id === b.teacher_id);
+                                labels.push(`<span style="color:${teacher?.color || '#3b82f6'}">● ${teacher?.name || ''}</span> ${SUBJECTS[b.subject] || ''} ${b.start_time}-${b.end_time}`);
+                            });
+                        } else if (group.pending.length > 0) {
+                            hasPending = true;
+                            const pending = group.pending[0];
+                            pendingId = pending.id;
+                            pendingTeacherId = pending.teacher_id;
+                            cls += ' pending';
+                            group.pending.forEach(b => {
+                                const teacher = this.users.find(u => u.id === b.teacher_id);
+                                const subject = b.subject ? SUBJECTS[b.subject] : '待确认';
+                                labels.push(`<span style="color:${teacher?.color || '#f97316'}">● ${teacher?.name || ''}</span> ${subject} ${b.start_time}-${b.end_time}`);
+                            });
+                        } else {
+                            if (group.teacherAvail.length > 0) {
+                                cls += ' teacher-avail';
+                                group.teacherAvail.forEach(a => {
+                                    const teacher = this.users.find(u => u.id === a.user_id);
+                                    const subject = teacher?.subject ? SUBJECTS[teacher.subject] : '';
+                                    labels.push(`<span style="color:${teacher?.color || '#10b981'}">● ${teacher?.name || ''}</span> ${subject} ${a.start_time}-${a.end_time}`);
+                                });
+                            }
+                            if (group.studentAvail.length > 0) {
+                                if (group.teacherAvail.length === 0) cls += ' student-avail';
+                                labels.push(`<span style="color:#3b82f6">● 学生</span> ${group.studentAvail[0].start_time}-${group.studentAvail[0].end_time}`);
+                            }
+                        }
+                        let confirmBtn = '';
+                        if (hasPending && (this.currentUser.role === 'teacher' || this.currentUser.role === 'admin')) {
+                            const isTeacherForThis = this.currentUser.role === 'teacher' && this.currentUser.id === pendingTeacherId;
+                            const isAdmin = this.currentUser.role === 'admin';
+                            if (isTeacherForThis || isAdmin) {
+                                confirmBtn = `<div style="margin-top:2px"><button onclick="event.stopPropagation();app.confirmSchedule('${pendingId}')" class="btn btn-sm" style="background:#10b981;color:#fff;padding:2px 6px;font-size:10px">确认</button></div>`;
+                            }
+                        }
+                        // 计算在当前格子内的位置
+                        let periodTop = 0;
+                        for (let j = 0; j < pos.periodIndex; j++) { periodTop += TIME_PERIODS[j].height; }
+                        const labelHtml = labels.join('<br>');
+                        h += `<div class="${cls}" style="top:${periodTop + pos.top}px;height:${pos.height}px;left:2px;right:2px;font-size:11px" onclick="event.stopPropagation();app.openTimeModal('${ds}','${group.start}','${group.end}')">${labelHtml}${confirmBtn}</div>`;
+                    });
+                    h += '</div>';
+                }
+            } else {
+                // 电脑端：半小时格子
+                h += '<div>';
+                TIME_SLOTS.forEach(slot => { h += `<div class="text-center text-xs text-gray-500 bg-gray-50" style="height:${SLOT_H}px;line-height:${SLOT_H}px">${slot.start}</div>`; });
+                h += '</div>';
+                for (let i = 0; i < 7; i++) {
+                    const dt = new Date(ws); dt.setDate(ws.getDate() + i); const ds = this.fmt(dt);
+                    h += `<div class="week-col" style="height:calc(28 * ${SLOT_H}px)" onclick="app.openTimeModal('${ds}','08:00','09:00')">`;
+                    TIME_SLOTS.forEach(() => { h += `<div class="week-slot-line" style="height:${SLOT_H}px"></div>`; });
+                    const timeGroups = this.getTimeGroups(ds);
+                    timeGroups.forEach(group => {
+                        const sMin = toMin(group.start), eMin = toMin(group.end);
+                        const top = (sMin / 30) * SLOT_H;
+                        const height = Math.max(((eMin - sMin) / 30) * SLOT_H, SLOT_H);
+                        let cls = 'week-block';
+                        let labels = [];
+                        let hasPending = false, pendingId = '', pendingTeacherId = '';
+                        if (group.confirmed.length > 0) {
+                            cls += ' confirmed';
+                            group.confirmed.forEach(b => {
+                                const teacher = this.users.find(u => u.id === b.teacher_id);
+                                labels.push(`<span style="color:${teacher?.color || '#3b82f6'}">● ${teacher?.name || ''}</span> ${SUBJECTS[b.subject] || ''} ${b.start_time}-${b.end_time}`);
+                            });
+                        } else if (group.pending.length > 0) {
+                            hasPending = true;
+                            const pending = group.pending[0];
+                            pendingId = pending.id;
+                            pendingTeacherId = pending.teacher_id;
+                            cls += ' pending';
+                            group.pending.forEach(b => {
+                                const teacher = this.users.find(u => u.id === b.teacher_id);
+                                const subject = b.subject ? SUBJECTS[b.subject] : '待确认';
+                                labels.push(`<span style="color:${teacher?.color || '#f97316'}">● ${teacher?.name || ''}</span> ${subject} ${b.start_time}-${b.end_time}`);
+                            });
+                        } else {
+                            if (group.teacherAvail.length > 0) {
+                                cls += ' teacher-avail';
+                                group.teacherAvail.forEach(a => {
+                                    const teacher = this.users.find(u => u.id === a.user_id);
+                                    const subject = teacher?.subject ? SUBJECTS[teacher.subject] : '';
+                                    labels.push(`<span style="color:${teacher?.color || '#10b981'}">● ${teacher?.name || ''}</span> ${subject} ${a.start_time}-${a.end_time}`);
+                                });
+                            }
+                            if (group.studentAvail.length > 0) {
+                                if (group.teacherAvail.length === 0) cls += ' student-avail';
+                                labels.push(`<span style="color:#3b82f6">● 学生</span> ${group.studentAvail[0].start_time}-${group.studentAvail[0].end_time}`);
+                            }
+                        }
+                        let confirmBtn = '';
+                        if (hasPending && (this.currentUser.role === 'teacher' || this.currentUser.role === 'admin')) {
+                            const isTeacherForThis = this.currentUser.role === 'teacher' && this.currentUser.id === pendingTeacherId;
+                            const isAdmin = this.currentUser.role === 'admin';
+                            if (isTeacherForThis || isAdmin) {
+                                confirmBtn = `<div style="margin-top:4px"><button onclick="event.stopPropagation();app.confirmSchedule('${pendingId}')" class="btn btn-sm" style="background:#10b981;color:#fff;padding:2px 8px;font-size:11px">确认排课</button></div>`;
+                            }
+                        }
+                        const labelHtml = labels.join('<br>');
+                        h += `<div class="${cls}" style="top:${top}px;height:${height}px" onclick="event.stopPropagation();app.openTimeModal('${ds}','${group.start}','${group.end}')">${labelHtml}${confirmBtn}</div>`;
+                    });
+                    h += '</div>';
+                }
             }
             return h + '</div></div></div>';
         }
@@ -915,6 +1012,10 @@
         const memoEl = document.getElementById('memo-text');
         if (noticeEl) noticeEl.addEventListener('input', () => app.saveNotice());
         if (memoEl) memoEl.addEventListener('input', () => app.saveMemo());
+        // 窗口大小变化时重新渲染
+        window.addEventListener('resize', () => {
+            if (app.currentUser) app.renderCalendar();
+        });
     });
     </script>
 </body>
