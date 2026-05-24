@@ -54,7 +54,7 @@
         .main-layout{display:flex;gap:24px}
         .sidebar{width:256px;flex-shrink:0}
         @media(max-width:1024px){.main-layout{flex-direction:column}.sidebar{width:100%}}
-        .week-col{position:relative;min-height:calc(28 * 50px);border:1px solid #e5e7eb;cursor:pointer}
+        .week-col{position:relative;min-height:200px;border:1px solid #e5e7eb;cursor:pointer}
         .week-slot-line{border-bottom:1px solid #f3f4f6;height:50px;pointer-events:none}
         .week-block{position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 6px;font-size:12px;overflow:hidden;z-index:1;cursor:pointer;border-left:4px solid}
         .week-block.teacher-avail{background:#f0fdf4;border-left-color:#10b981}
@@ -64,6 +64,23 @@
         .sync-status{position:fixed;top:16px;right:16px;padding:8px 16px;border-radius:8px;font-size:12px;z-index:100}
         .sync-status.online{background:#10b981;color:#fff}
         .sync-status.offline{background:#ef4444;color:#fff}
+        /* 手机端布局 */
+        @media(max-width:768px){
+            .mobile-layout{display:flex;flex-direction:column!important;padding:0!important;gap:0!important}
+            .mobile-layout .mobile-sidebar{width:100%!important;order:0}
+            .mobile-layout .mobile-calendar{order:1;width:100%!important}
+            .mobile-layout .mobile-accounts{order:2;width:100%!important}
+            .mobile-layout .mobile-memo{order:3;width:100%!important}
+            .mobile-top-bar{display:flex!important;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb}
+            .mobile-top-bar .left{display:flex;align-items:center;gap:8px}
+            .mobile-top-bar .right{display:flex;align-items:center;gap:8px}
+            .mobile-hide{display:none!important}
+            .mobile-section{padding:12px;border-bottom:8px solid #f3f4f6}
+        }
+        @media(min-width:769px){
+            .mobile-top-bar{display:none!important}
+            .mobile-section{display:none!important}
+        }
     </style>
 </head>
 <body>
@@ -101,11 +118,30 @@
             <div class="flex items-start gap-3" style="max-width:1280px;margin:0 auto">
                 <span style="font-size:20px;margin-top:2px">📢</span>
                 <textarea id="notice-text" class="notice-text" rows="2" placeholder="点击这里编辑通知、放置网站链接或重要信息..."></textarea>
-                <button onclick="app.openFileModal()" class="btn btn-sm btn-ghost" style="margin-top:2px">📎 文件</button>
+                <button onclick="app.openFileModal()" class="btn btn-sm btn-ghost mobile-hide" style="margin-top:2px">📎 文件</button>
             </div>
         </div>
 
-        <!-- 顶部 -->
+        <!-- 手机端顶栏：撤销 + 切换账户 -->
+        <div class="mobile-top-bar">
+            <div class="left">
+                <button onclick="app.undo()" id="undo-btn-mobile" class="btn btn-sm btn-ghost" style="opacity:0.5" disabled>↩️ 撤销</button>
+                <span id="current-date-display-mobile" class="text-sm font-medium"></span>
+            </div>
+            <div class="right">
+                <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                    <button onclick="app.prevPeriod()" class="btn-icon" style="padding:4px 8px">◀</button>
+                    <button onclick="app.nextPeriod()" class="btn-icon" style="padding:4px 8px">▶</button>
+                </div>
+                <div class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg">
+                    <div id="current-user-avatar-mobile" class="avatar" style="width:24px;height:24px;font-size:11px"></div>
+                    <span id="current-user-name-mobile" class="text-xs font-medium"></span>
+                    <button onclick="app.logout()" class="text-xs text-gray-500" style="text-decoration:underline">切换</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 电脑端顶部栏 -->
         <header class="header-bar">
             <div class="flex items-center justify-between flex-wrap gap-3 px-4 py-3" style="max-width:1280px;margin:0 auto">
                 <div class="flex items-center gap-4">
@@ -132,8 +168,58 @@
             </div>
         </header>
 
-        <!-- 主体 -->
-        <div class="flex gap-6 px-4 py-6 main-layout" style="max-width:1280px;margin:0 auto">
+        <!-- 手机端主体布局 -->
+        <div class="mobile-layout">
+            <!-- 手机端：个人设置 + 作业 -->
+            <div class="mobile-sidebar">
+                <div class="mobile-section">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div id="sidebar-avatar-m" class="avatar" style="width:36px;height:36px;font-size:14px"></div>
+                        <div>
+                            <div id="sidebar-name-m" class="font-medium text-sm"></div>
+                            <div id="sidebar-role-m" class="text-xs text-gray-500"></div>
+                        </div>
+                        <button onclick="app.openSettings()" class="btn btn-sm btn-ghost ml-auto">⚙️</button>
+                    </div>
+                </div>
+                <div class="mobile-section">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-medium text-sm text-gray-700">📖 作业</h3>
+                        <button id="add-hw-btn-m" onclick="app.openHomeworkModal()" class="btn-icon hidden" style="font-size:16px">➕</button>
+                    </div>
+                    <div id="homework-list-m" class="space-y-2" style="max-height:200px;overflow-y:auto"></div>
+                </div>
+            </div>
+
+            <!-- 手机端：时间表 -->
+            <div class="mobile-calendar">
+                <div class="flex bg-gray-100 rounded-lg p-1 mb-2" style="max-width:200px;margin:0 auto">
+                    <button onclick="app.setViewMode('month')" id="btn-month-m" class="view-btn" style="font-size:12px;padding:4px 12px">月</button>
+                    <button onclick="app.setViewMode('week')" id="btn-week-m" class="view-btn" style="font-size:12px;padding:4px 12px">周</button>
+                    <button onclick="app.setViewMode('day')" id="btn-day-m" class="view-btn active" style="font-size:12px;padding:4px 12px">日</button>
+                </div>
+                <div id="calendar-container-m" class="card" style="padding:8px"></div>
+            </div>
+
+            <!-- 手机端：Accounts -->
+            <div class="mobile-accounts">
+                <div class="mobile-section">
+                    <h3 class="font-medium text-sm text-gray-700 mb-2">👥 Accounts</h3>
+                    <div id="accounts-list-m" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <!-- 手机端：Memo -->
+            <div class="mobile-memo">
+                <div class="mobile-section" style="border-bottom:none">
+                    <h3 class="font-medium text-sm text-gray-700 mb-2">📝 Memo</h3>
+                    <textarea id="memo-text-m" class="input" style="min-height:200px;resize:none;font-size:14px;line-height:1.6" placeholder="在这里记录笔记..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 电脑端主体布局 -->
+        <div class="flex gap-6 px-4 py-6 main-layout mobile-hide" style="max-width:1280px;margin:0 auto">
             <!-- 左侧栏 -->
             <aside class="w-64 flex-shrink-0 space-y-4 sidebar">
                 <div class="card p-4">
@@ -147,15 +233,15 @@
                     <button onclick="app.openSettings()" class="btn btn-ghost w-full">⚙️ 个人设置</button>
                 </div>
                 <div class="card p-4">
-                    <h3 class="font-medium mb-3 text-gray-700">👥 Accounts</h3>
-                    <div id="accounts-list" class="space-y-2"></div>
-                </div>
-                <div class="card p-4">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-medium text-gray-700">📖 作业</h3>
                         <button id="add-hw-btn" onclick="app.openHomeworkModal()" class="btn-icon hidden">➕</button>
                     </div>
                     <div id="homework-list" class="space-y-3" style="max-height:300px;overflow-y:auto"></div>
+                </div>
+                <div class="card p-4">
+                    <h3 class="font-medium text-gray-700 mb-3">👥 Accounts</h3>
+                    <div id="accounts-list" class="space-y-1"></div>
                 </div>
             </aside>
 
@@ -302,11 +388,11 @@
 
     // 默认用户
     const DEFAULT_USERS = [
-        { id: '1', name: '听力老师', color: '#3B82F6', role: 'teacher', subject: 'listening' },
+        { id: '1', name: '听力老师', color: '#8B5CF6', role: 'teacher', subject: 'listening' },
         { id: '2', name: '口语老师', color: '#10B981', role: 'teacher', subject: 'speaking' },
         { id: '3', name: '阅读老师', color: '#F59E0B', role: 'teacher', subject: 'reading' },
         { id: '4', name: '写作老师', color: '#EF4444', role: 'teacher', subject: 'writing' },
-        { id: '5', name: '学生', color: '#8B5CF6', role: 'student' },
+        { id: '5', name: '学生', color: '#3B82F6', role: 'student' },
         { id: '6', name: '班主任', color: '#EC4899', role: 'admin' }
     ];
 
@@ -441,7 +527,7 @@
         renderLogin() {
             document.getElementById('user-list').innerHTML = this.users.map(u => `
                 <button onclick="app.login('${u.id}')" class="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg w-full text-left" style="transition:background .15s">
-                    <div class="avatar w-10" style="background:${u.color}">${u.name[0]}</div>
+                    <div class="avatar" style="background:${u.color};width:36px;height:36px;flex-shrink:0"></div>
                     <div><div class="font-medium">${u.name}</div><div class="text-sm text-gray-500">${this.roleLabel(u.role)}${u.subject ? ' · ' + SUBJECTS[u.subject] : ''}</div></div>
                 </button>`).join('');
         }
@@ -475,32 +561,51 @@
 
         updateHeader() {
             const u = this.currentUser;
+            // 电脑端
             document.getElementById('current-user-name').textContent = u.name;
             const a = document.getElementById('current-user-avatar');
             a.style.background = u.color;
             a.textContent = u.name[0];
+            // 手机端
+            const am = document.getElementById('current-user-avatar-mobile');
+            if (am) { am.style.background = u.color; am.textContent = u.name[0]; }
+            const nm = document.getElementById('current-user-name-mobile');
+            if (nm) nm.textContent = u.name;
         }
 
         updateSidebar() {
             const u = this.currentUser;
+            // 电脑端
             document.getElementById('sidebar-name').textContent = u.name;
             document.getElementById('sidebar-role').textContent = u.role === 'teacher' ? '老师 · ' + SUBJECTS[u.subject] : this.roleLabel(u.role);
             const a = document.getElementById('sidebar-avatar');
             a.style.background = u.color;
             a.textContent = u.name[0];
             document.getElementById('add-hw-btn').classList.toggle('hidden', u.role !== 'teacher' && u.role !== 'admin');
-            document.getElementById('accounts-list').innerHTML = this.users.map(t => `
+            // 手机端
+            const am = document.getElementById('sidebar-avatar-m');
+            if (am) { am.style.background = u.color; am.textContent = u.name[0]; }
+            const nm = document.getElementById('sidebar-name-m');
+            if (nm) nm.textContent = u.name;
+            const rm = document.getElementById('sidebar-role-m');
+            if (rm) rm.textContent = u.role === 'teacher' ? '老师 · ' + SUBJECTS[u.subject] : this.roleLabel(u.role);
+            const hbm = document.getElementById('add-hw-btn-m');
+            if (hbm) hbm.classList.toggle('hidden', u.role !== 'teacher' && u.role !== 'admin');
+            // Accounts（手机端带代表色）
+            const accountsHtml = this.users.map(t => `
                 <div class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                    <div class="w-4" style="background:${t.color};border-radius:50%;height:16px"></div>
+                    <div style="background:${t.color};border-radius:50%;width:16px;height:16px;flex-shrink:0"></div>
                     <span class="text-sm">${t.name}</span>
                     <span class="text-xs text-gray-400 ml-auto">${t.role === 'teacher' ? SUBJECTS[t.subject] : this.roleLabel(t.role)}</span>
                 </div>`).join('');
+            const accountsEl = document.getElementById('accounts-list-m');
+            if (accountsEl) accountsEl.innerHTML = accountsHtml;
+            const accountsElDesktop = document.getElementById('accounts-list');
+            if (accountsElDesktop) accountsElDesktop.innerHTML = accountsHtml;
         }
 
         updateHomework() {
-            const c = document.getElementById('homework-list');
-            if (!this.homework.length) { c.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">暂无作业</div>'; return; }
-            c.innerHTML = this.homework.map(hw => {
+            const hwHtml = this.homework.length ? this.homework.map(hw => {
                 const t = this.users.find(u => u.id === hw.teacher_id);
                 const canDel = (this.currentUser.role === 'teacher' && this.currentUser.id === hw.teacher_id) || this.currentUser.role === 'admin';
                 return `<div class="text-sm border-b pb-2 last-border-0">
@@ -508,21 +613,39 @@
                     ${canDel ? `<button onclick="app.deleteHomework('${hw.id}')" class="ml-auto text-red-400 hover:text-red-600" style="font-size:12px">🗑</button>` : ''}</div>
                     <p class="text-gray-600">${hw.content}</p>
                     ${hw.due_date ? `<p class="text-xs text-gray-400 mt-1">截止: ${hw.due_date}</p>` : ''}</div>`;
-            }).join('');
+            }).join('') : '<div class="text-sm text-gray-400 text-center py-4">暂无作业</div>';
+            // 电脑端
+            document.getElementById('homework-list').innerHTML = hwHtml;
+            // 手机端
+            const hlm = document.getElementById('homework-list-m');
+            if (hlm) hlm.innerHTML = hwHtml;
         }
 
         updateViewBtns() {
             document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + this.viewMode).classList.add('active');
             const d = this.currentDate;
-            document.getElementById('current-date-display').textContent = this.viewMode === 'month' ? d.getFullYear() + '年' + (d.getMonth() + 1) + '月' : (d.getMonth() + 1) + '月' + d.getDate() + '日';
+            const dateText = this.viewMode === 'month' ? d.getFullYear() + '年' + (d.getMonth() + 1) + '月' : (d.getMonth() + 1) + '月' + d.getDate() + '日';
+            // 电脑端
+            document.getElementById('btn-' + this.viewMode).classList.add('active');
+            document.getElementById('current-date-display').textContent = dateText;
+            // 手机端
+            const mbm = document.getElementById('btn-month-m');
+            const mbw = document.getElementById('btn-week-m');
+            const mbd = document.getElementById('btn-day-m');
+            if (mbm) { mbm.classList.remove('active'); mbw.classList.remove('active'); mbd.classList.remove('active'); }
+            if (this.viewMode === 'month' && mbm) mbm.classList.add('active');
+            else if (this.viewMode === 'week' && mbw) mbw.classList.add('active');
+            else if (mbd) mbd.classList.add('active');
+            const cdm = document.getElementById('current-date-display-mobile');
+            if (cdm) cdm.textContent = dateText;
         }
 
         renderCalendar() {
             const c = document.getElementById('calendar-container');
-            if (this.viewMode === 'month') c.innerHTML = this.renderMonth();
-            else if (this.viewMode === 'week') c.innerHTML = this.renderWeek();
-            else c.innerHTML = this.renderDay();
+            const cm = document.getElementById('calendar-container-m');
+            const html = this.viewMode === 'month' ? this.renderMonth() : this.viewMode === 'week' ? this.renderWeek() : this.renderDay();
+            c.innerHTML = html;
+            if (cm) cm.innerHTML = html;
         }
 
         // 渲染月视图（简化版）
@@ -539,9 +662,9 @@
             // 手机端：三个大格子（上午8-12，下午12-18，晚上18-23）
             // 电脑端：半小时格子
             const TIME_PERIODS = isMobile ? [
-                { label: '上午 8-12', start: 8, end: 12, height: 120 },
-                { label: '下午 12-18', start: 12, end: 18, height: 120 },
-                { label: '晚上 18-23', start: 18, end: 23, height: 100 }
+                { label: '上午 8-12', start: 8, end: 12, height: 240 },
+                { label: '下午 12-18', start: 12, end: 18, height: 240 },
+                { label: '晚上 18-23', start: 18, end: 23, height: 200 }
             ] : null;
             
             const SLOT_H = isMobile ? 0 : 50;
@@ -920,6 +1043,8 @@
         updateUndoBtn() {
             const btn = document.getElementById('undo-btn');
             if (this.historyIndex >= 0) { btn.disabled = false; btn.style.opacity = '1'; } else { btn.disabled = true; btn.style.opacity = '0.5'; }
+            const btnM = document.getElementById('undo-btn-mobile');
+            if (btnM) { if (this.historyIndex >= 0) { btnM.disabled = false; btnM.style.opacity = '1'; } else { btnM.disabled = true; btnM.style.opacity = '0.5'; } }
         }
 
         // 作业相关
@@ -989,10 +1114,20 @@
         loadMemo() {
             const el = document.getElementById('memo-text');
             if (el) el.value = this.memo;
+            const elm = document.getElementById('memo-text-m');
+            if (elm) elm.value = this.memo;
         }
 
         async saveMemo() {
-            this.memo = document.getElementById('memo-text').value;
+            const el = document.getElementById('memo-text');
+            const elm = document.getElementById('memo-text-m');
+            // 取当前活跃的那个（非hidden的）
+            if (el && el.offsetParent !== null) this.memo = el.value;
+            else if (elm) this.memo = elm.value;
+            else this.memo = el?.value || elm?.value || '';
+            // 同步两端
+            if (el) el.value = this.memo;
+            if (elm) elm.value = this.memo;
             await this.saveToFirebase();
         }
 
@@ -1010,8 +1145,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         const noticeEl = document.getElementById('notice-text');
         const memoEl = document.getElementById('memo-text');
+        const memoElM = document.getElementById('memo-text-m');
         if (noticeEl) noticeEl.addEventListener('input', () => app.saveNotice());
         if (memoEl) memoEl.addEventListener('input', () => app.saveMemo());
+        if (memoElM) memoElM.addEventListener('input', () => app.saveMemo());
         // 窗口大小变化时重新渲染
         window.addEventListener('resize', () => {
             if (app.currentUser) app.renderCalendar();
