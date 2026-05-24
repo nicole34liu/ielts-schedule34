@@ -71,14 +71,10 @@
             .mobile-layout .mobile-calendar{order:1;width:100%!important}
             .mobile-layout .mobile-accounts{order:2;width:100%!important}
             .mobile-layout .mobile-memo{order:3;width:100%!important}
-            .mobile-top-bar{display:flex!important;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb}
-            .mobile-top-bar .left{display:flex;align-items:center;gap:8px}
-            .mobile-top-bar .right{display:flex;align-items:center;gap:8px}
             .mobile-hide{display:none!important}
             .mobile-section{padding:12px;border-bottom:8px solid #f3f4f6}
         }
         @media(min-width:769px){
-            .mobile-top-bar{display:none!important}
             .mobile-section{display:none!important}
         }
     </style>
@@ -122,48 +118,14 @@
             </div>
         </div>
 
-        <!-- 手机端顶栏：撤销 + 切换账户 -->
-        <div class="mobile-top-bar">
-            <div class="left">
-                <button onclick="app.undo()" id="undo-btn-mobile" class="btn btn-sm btn-ghost" style="opacity:0.5" disabled>↩️ 撤销</button>
-                <span id="current-date-display-mobile" class="text-sm font-medium"></span>
-            </div>
-            <div class="right">
-                <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                    <button onclick="app.prevPeriod()" class="btn-icon" style="padding:4px 8px">◀</button>
-                    <button onclick="app.nextPeriod()" class="btn-icon" style="padding:4px 8px">▶</button>
-                </div>
-                <div class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg">
-                    <div id="current-user-avatar-mobile" class="avatar" style="width:24px;height:24px;font-size:11px"></div>
-                    <span id="current-user-name-mobile" class="text-xs font-medium"></span>
-                    <button onclick="app.logout()" class="text-xs text-gray-500" style="text-decoration:underline">切换</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 电脑端顶部栏 -->
+        <!-- 顶部栏：标题 + 角色切换 -->
         <header class="header-bar">
-            <div class="flex items-center justify-between flex-wrap gap-3 px-4 py-3" style="max-width:1280px;margin:0 auto">
-                <div class="flex items-center gap-4">
-                    <h1 class="text-xl font-bold">📚 雅思课表</h1>
-                    <div class="flex bg-gray-100 rounded-lg p-1">
-                        <button onclick="app.setViewMode('month')" id="btn-month" class="view-btn">月</button>
-                        <button onclick="app.setViewMode('week')" id="btn-week" class="view-btn">周</button>
-                        <button onclick="app.setViewMode('day')" id="btn-day" class="view-btn active">日</button>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="app.undo()" id="undo-btn" class="btn btn-sm btn-ghost" style="opacity:0.5" disabled>↩️ 撤销</button>
-                    <div class="flex items-center gap-2 bg-gray-100 rounded-lg px-2">
-                        <button onclick="app.prevPeriod()" class="btn-icon">◀</button>
-                        <span id="current-date-display" class="text-sm font-medium min-w-100 text-center"></span>
-                        <button onclick="app.nextPeriod()" class="btn-icon">▶</button>
-                    </div>
-                    <div class="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                        <div id="current-user-avatar" class="avatar w-8" style="font-size:14px"></div>
-                        <span id="current-user-name" class="text-sm font-medium"></span>
-                        <button onclick="app.logout()" class="text-xs text-gray-500 hover:text-gray-700 ml-2" style="text-decoration:underline">切换</button>
-                    </div>
+            <div class="flex items-center justify-between px-4 py-3" style="max-width:1280px;margin:0 auto">
+                <h1 class="text-xl font-bold">📚 雅思课表</h1>
+                <div class="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
+                    <div id="current-user-avatar" class="avatar" style="width:28px;height:28px;font-size:13px"></div>
+                    <span id="current-user-name" class="text-sm font-medium"></span>
+                    <button onclick="app.logout()" class="text-xs text-gray-500 hover:text-gray-700 ml-1" style="text-decoration:underline">切换</button>
                 </div>
             </div>
         </header>
@@ -193,10 +155,18 @@
 
             <!-- 手机端：时间表 -->
             <div class="mobile-calendar">
-                <div class="flex bg-gray-100 rounded-lg p-1 mb-2" style="max-width:200px;margin:0 auto">
-                    <button onclick="app.setViewMode('month')" id="btn-month-m" class="view-btn" style="font-size:12px;padding:4px 12px">月</button>
-                    <button onclick="app.setViewMode('week')" id="btn-week-m" class="view-btn" style="font-size:12px;padding:4px 12px">周</button>
-                    <button onclick="app.setViewMode('day')" id="btn-day-m" class="view-btn active" style="font-size:12px;padding:4px 12px">日</button>
+                <div class="flex items-center justify-between mb-2 px-1" style="gap:8px;flex-wrap:wrap">
+                    <button onclick="app.undo()" id="undo-btn-mobile" class="btn btn-sm btn-ghost" style="opacity:0.5;padding:4px 10px;font-size:12px" disabled>↩️ 撤销</button>
+                    <div class="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+                        <button onclick="app.prevPeriod()" class="btn-icon" style="padding:4px 8px;font-size:12px">◀</button>
+                        <span id="current-date-display-mobile" class="text-xs font-medium" style="min-width:70px;text-align:center"></span>
+                        <button onclick="app.nextPeriod()" class="btn-icon" style="padding:4px 8px;font-size:12px">▶</button>
+                    </div>
+                    <div class="flex bg-gray-100 rounded-lg p-1">
+                        <button onclick="app.setViewMode('month')" id="btn-month-m" class="view-btn" style="font-size:12px;padding:4px 12px">月</button>
+                        <button onclick="app.setViewMode('week')" id="btn-week-m" class="view-btn" style="font-size:12px;padding:4px 12px">周</button>
+                        <button onclick="app.setViewMode('day')" id="btn-day-m" class="view-btn active" style="font-size:12px;padding:4px 12px">日</button>
+                    </div>
                 </div>
                 <div id="calendar-container-m" class="card" style="padding:8px"></div>
             </div>
@@ -247,6 +217,19 @@
 
             <!-- 日历 -->
             <main class="flex-1 card p-4 lg:p-6">
+                <div class="flex items-center justify-between mb-4" style="gap:12px;flex-wrap:wrap">
+                    <button onclick="app.undo()" id="undo-btn" class="btn btn-sm btn-ghost" style="opacity:0.5" disabled>↩️ 撤销</button>
+                    <div class="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1">
+                        <button onclick="app.prevPeriod()" class="btn-icon">◀</button>
+                        <span id="current-date-display" class="text-sm font-medium" style="min-width:100px;text-align:center"></span>
+                        <button onclick="app.nextPeriod()" class="btn-icon">▶</button>
+                    </div>
+                    <div class="flex bg-gray-100 rounded-lg p-1">
+                        <button onclick="app.setViewMode('month')" id="btn-month" class="view-btn">月</button>
+                        <button onclick="app.setViewMode('week')" id="btn-week" class="view-btn">周</button>
+                        <button onclick="app.setViewMode('day')" id="btn-day" class="view-btn active">日</button>
+                    </div>
+                </div>
                 <div id="calendar-container"></div>
             </main>
 
@@ -561,16 +544,11 @@
 
         updateHeader() {
             const u = this.currentUser;
-            // 电脑端
-            document.getElementById('current-user-name').textContent = u.name;
             const a = document.getElementById('current-user-avatar');
             a.style.background = u.color;
             a.textContent = u.name[0];
-            // 手机端
-            const am = document.getElementById('current-user-avatar-mobile');
-            if (am) { am.style.background = u.color; am.textContent = u.name[0]; }
-            const nm = document.getElementById('current-user-name-mobile');
-            if (nm) nm.textContent = u.name;
+            const n = document.getElementById('current-user-name');
+            if (n) n.textContent = u.name;
         }
 
         updateSidebar() {
