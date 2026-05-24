@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雅思课表管理系统 - 云端版</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f3f4f6;color:#1f2937;line-height:1.5}
+        button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
+        input,select,textarea{font:inherit;color:inherit}
+        .hidden{display:none!important}
+        .flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:4px}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-6{gap:24px}.flex-1{flex:1;min-width:0}.flex-shrink-0{flex-shrink:0}.flex-wrap{flex-wrap:wrap}
+        .grid{display:grid}.grid-cols-7{grid-template-columns:repeat(7,1fr)}
+        .min-h-screen{min-height:100vh}.min-w-800{min-width:800px}.w-full{width:100%}.w-64{width:256px}.w-8{width:32px;height:32px}
+        .mx-4{margin-left:16px;margin-right:16px}.ml-auto{margin-left:auto}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}
+        .py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}.py-3{padding-top:12px;padding-bottom:12px}.py-4{padding-top:16px;padding-bottom:16px}
+        .px-1{padding-left:4px;padding-right:4px}.px-2{padding-left:8px;padding-right:8px}.px-3{padding-left:12px;padding-right:12px}.px-4{padding-left:16px;padding-right:16px}
+        .p-1{padding:4px}.p-2{padding:8px}.p-3{padding:12px}.p-4{padding:16px}.p-6{padding:24px}
+        .text-xs{font-size:12px}.text-sm{font-size:14px}.text-lg{font-size:18px}.text-xl{font-size:20px}
+        .font-medium{font-weight:500}.font-bold{font-weight:700}.text-center{text-align:center}
+        .text-gray-400{color:#9ca3af}.text-gray-500{color:#6b7280}.text-gray-600{color:#4b5563}
+        .text-blue-600{color:#2563eb}.text-red-400{color:#f87171}.text-red-600{color:#dc2626}
+        .bg-white{background:#fff}.bg-gray-50{background:#f9fafb}.bg-gray-100{background:#f3f4f6}.bg-blue-100{background:#dbeafe}
+        .border{border:1px solid #e5e7eb}.border-b{border-bottom:1px solid #e5e7eb}
+        .rounded{border-radius:8px}.rounded-lg{border-radius:8px}.rounded-full{border-radius:9999px}
+        .shadow{box-shadow:0 1px 3px rgba(0,0,0,.1)}
+        .overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}
+        .card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+        .avatar{display:flex;align-items:center;justify-content:center;border-radius:9999px;color:#fff;font-weight:500}
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;transition:background .2s}
+        .btn-primary{background:#3b82f6;color:#fff}.btn-primary:hover{background:#2563eb}
+        .btn-ghost{background:#f3f4f6}.btn-ghost:hover{background:#e5e7eb}
+        .btn-icon{padding:8px;border-radius:8px}.btn-icon:hover{background:#f3f4f6}
+        .btn-sm{padding:4px 12px;font-size:12px}
+        .input{width:100%;padding:8px 12px;border:1px solid #e5e7eb;border-radius:8px;outline:none}
+        .input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.2)}
+        .view-btn{padding:4px 12px;border-radius:6px;font-size:14px;font-weight:500}
+        .view-btn.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+        .cal-cell{min-height:80px;padding:8px;border:1px solid #e5e7eb;cursor:pointer}
+        .cal-cell:hover{background:#f9fafb}
+        .time-cell{min-height:50px;padding:4px;border:1px solid #e5e7eb;cursor:pointer;position:relative}
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50}
+        .modal-box{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:420px;max-height:90vh;overflow-y:auto}
+        .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:#1f2937;color:#fff;padding:12px 24px;border-radius:8px;opacity:0;transition:all .3s;z-index:100}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .notice-bar{background:linear-gradient(90deg,#fef3c7,#fffbeb);border-bottom:1px solid #fcd34d;padding:12px 16px}
+        .notice-text{width:100%;background:transparent;border:none;outline:none;font-size:16px;color:#92400e;resize:none;min-height:24px}
+        .header-bar{background:#fff;border-bottom:1px solid #e5e7eb}
+        .main-layout{display:flex;gap:24px}
+        .sidebar{width:256px;flex-shrink:0}
+        @media(max-width:1024px){.main-layout{flex-direction:column}.sidebar{width:100%}}
+        .week-col{position:relative;min-height:calc(28 * 50px);border:1px solid #e5e7eb;cursor:pointer}
+        .week-slot-line{border-bottom:1px solid #f3f4f6;height:50px;pointer-events:none}
+        .week-block{position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 6px;font-size:12px;overflow:hidden;z-index:1;cursor:pointer;border-left:4px solid}
+        .week-block.teacher-avail{background:#f0fdf4;border-left-color:#10b981}
+        .week-block.student-avail{background:#eff6ff;border-left-color:#3b82f6}
+        .week-block.pending{background:#fff7ed;border-left-color:#f97316}
+        .week-block.confirmed{background:#ffff00;border-left-color:#f59e0b;box-shadow:0 0 8px rgba(255,255,0,0.6)}
+        .sync-status{position:fixed;top:16px;right:16px;padding:8px 16px;border-radius:8px;font-size:12px;z-index:100}
+        .sync-status.online{background:#10b981;color:#fff}
+        .sync-status.offline{background:#ef4444;color:#fff}
+    </style>
+</head>
+<body>
+    <!-- 同步状态指示器 -->
+    <div id="sync-status" class="sync-status offline hidden">离线</div>
+
+    <!-- 登录页面 -->
+    <div id="login-page" class="min-h-screen flex items-center justify-center">
+        <div class="card p-8 w-full" style="max-width:420px">
+            <h1 class="text-2xl font-bold text-center mb-2">📚 雅思课表管理</h1>
+            <p class="text-gray-500 text-center mb-6">云端版 - 多设备实时同步</p>
+            
+            <!-- 连接状态 -->
+            <div id="connection-status" class="text-center mb-4 text-sm text-gray-500">
+                正在连接服务器...
+            </div>
+
+            <!-- 用户选择 -->
+            <div id="user-list" class="space-y-3 hidden">
+                <!-- 动态生成 -->
+            </div>
+
+            <!-- 首次使用提示 -->
+            <div id="first-use-hint" class="hidden mt-4 p-4 bg-blue-50 rounded-lg text-sm text-blue-700">
+                <p class="font-medium mb-2">👋 欢迎使用云端版！</p>
+                <p>数据将自动同步到所有设备。首次使用请选择一个身份登录。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主页面 -->
+    <div id="main-page" class="min-h-screen hidden">
+        <!-- 通知栏 -->
+        <div class="notice-bar">
+            <div class="flex items-start gap-3" style="max-width:1280px;margin:0 auto">
+                <span style="font-size:20px;margin-top:2px">📢</span>
+                <textarea id="notice-text" class="notice-text" rows="2" placeholder="点击这里编辑通知、放置网站链接或重要信息..."></textarea>
+                <button onclick="app.openFileModal()" class="btn btn-sm btn-ghost" style="margin-top:2px">📎 文件</button>
+            </div>
+        </div>
+
+        <!-- 顶部 -->
+        <header class="header-bar">
+            <div class="flex items-center justify-between flex-wrap gap-3 px-4 py-3" style="max-width:1280px;margin:0 auto">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-xl font-bold">📚 雅思课表</h1>
+                    <div class="flex bg-gray-100 rounded-lg p-1">
+                        <button onclick="app.setViewMode('month')" id="btn-month" class="view-btn">月</button>
+                        <button onclick="app.setViewMode('week')" id="btn-week" class="view-btn">周</button>
+                        <button onclick="app.setViewMode('day')" id="btn-day" class="view-btn active">日</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="app.undo()" id="undo-btn" class="btn btn-sm btn-ghost" style="opacity:0.5" disabled>↩️ 撤销</button>
+                    <div class="flex items-center gap-2 bg-gray-100 rounded-lg px-2">
+                        <button onclick="app.prevPeriod()" class="btn-icon">◀</button>
+                        <span id="current-date-display" class="text-sm font-medium min-w-100 text-center"></span>
+                        <button onclick="app.nextPeriod()" class="btn-icon">▶</button>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
+                        <div id="current-user-avatar" class="avatar w-8" style="font-size:14px"></div>
+                        <span id="current-user-name" class="text-sm font-medium"></span>
+                        <button onclick="app.logout()" class="text-xs text-gray-500 hover:text-gray-700 ml-2" style="text-decoration:underline">切换</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主体 -->
+        <div class="flex gap-6 px-4 py-6 main-layout" style="max-width:1280px;margin:0 auto">
+            <!-- 左侧栏 -->
+            <aside class="w-64 flex-shrink-0 space-y-4 sidebar">
+                <div class="card p-4">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div id="sidebar-avatar" class="avatar w-12" style="font-size:18px"></div>
+                        <div>
+                            <div id="sidebar-name" class="font-medium"></div>
+                            <div id="sidebar-role" class="text-sm text-gray-500"></div>
+                        </div>
+                    </div>
+                    <button onclick="app.openSettings()" class="btn btn-ghost w-full">⚙️ 个人设置</button>
+                </div>
+                <div class="card p-4">
+                    <h3 class="font-medium mb-3 text-gray-700">👥 Accounts</h3>
+                    <div id="accounts-list" class="space-y-2"></div>
+                </div>
+                <div class="card p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-medium text-gray-700">📖 作业</h3>
+                        <button id="add-hw-btn" onclick="app.openHomeworkModal()" class="btn-icon hidden">➕</button>
+                    </div>
+                    <div id="homework-list" class="space-y-3" style="max-height:300px;overflow-y:auto"></div>
+                </div>
+            </aside>
+
+            <!-- 日历 -->
+            <main class="flex-1 card p-4 lg:p-6">
+                <div id="calendar-container"></div>
+            </main>
+
+            <!-- 右侧 Memo -->
+            <aside class="w-64 flex-shrink-0 sidebar" style="display:flex;flex-direction:column">
+                <div class="card p-4" style="flex:1;display:flex;flex-direction:column">
+                    <h3 class="font-medium mb-3 text-gray-700">📝 Memo</h3>
+                    <textarea id="memo-text" class="input" style="flex:1;min-height:400px;resize:none;font-size:14px;line-height:1.6" placeholder="在这里记录笔记..."></textarea>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 时间选择弹窗 -->
+    <div id="time-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">⏰ 选择时间</h2>
+                <button onclick="app.closeTimeModal()" class="btn-icon text-xl">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center gap-3 justify-center">
+                    <input type="text" id="time-start" class="input" placeholder="08:00" maxlength="5">
+                    <span>至</span>
+                    <input type="text" id="time-end" class="input" placeholder="09:00" maxlength="5">
+                </div>
+                <p class="text-xs text-gray-500 text-center">格式: HH:MM (如 13:40)</p>
+                <div id="student-teacher-section" class="hidden">
+                    <label class="block text-sm font-medium mb-1">选择老师</label>
+                    <select id="teacher-select" class="input">
+                        <option value="">-- 选择老师 --</option>
+                    </select>
+                </div>
+                <div id="admin-schedule-section" class="hidden">
+                    <label class="block text-sm font-medium mb-1">为以下人员操作</label>
+                    <select id="schedule-for" class="input">
+                        <option value="">-- 选择人员 --</option>
+                    </select>
+                    <label class="block text-sm font-medium mb-1 mt-2">选择科目</label>
+                    <select id="schedule-subject" class="input">
+                        <option value="listening">听力</option>
+                        <option value="speaking">口语</option>
+                        <option value="reading">阅读</option>
+                        <option value="writing">写作</option>
+                    </select>
+                </div>
+                <div id="time-action-btns" class="flex gap-2">
+                    <button onclick="app.confirmTimeAction('avail')" class="btn btn-primary flex-1" id="btn-avail">标记空闲</button>
+                    <button onclick="app.confirmTimeAction('request')" class="btn btn-ghost flex-1" id="btn-request" style="background:#f97316;color:#fff">预约课程</button>
+                    <button onclick="app.confirmTimeAction('admin-avail')" class="btn btn-ghost flex-1 hidden" id="btn-admin-avail" style="background:#10b981;color:#fff">代填空闲</button>
+                    <button onclick="app.confirmTimeAction('admin-schedule')" class="btn btn-ghost flex-1 hidden" id="btn-admin-schedule" style="background:#3b82f6;color:#fff">确认排课</button>
+                </div>
+                <button onclick="app.deleteTimeSlot()" class="btn btn-ghost w-full text-red-600" id="btn-delete-time" style="display:none">删除此时间段</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">⚙️ 个人设置</h2>
+                <button onclick="app.closeSettings()" class="btn-icon text-xl">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">姓名</label>
+                    <input type="text" id="setting-name" class="input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">代表色</label>
+                    <div id="color-picker" class="flex flex-wrap gap-2"></div>
+                </div>
+                <button onclick="app.saveSettings()" class="btn btn-primary w-full">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 作业弹窗 -->
+    <div id="homework-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">📝 添加作业</h2>
+                <button onclick="app.closeHomeworkModal()" class="btn-icon text-xl">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">科目</label>
+                    <select id="hw-subject" class="input">
+                        <option value="listening">听力</option>
+                        <option value="speaking">口语</option>
+                        <option value="reading">阅读</option>
+                        <option value="writing">写作</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">作业内容</label>
+                    <textarea id="hw-content" rows="3" class="input" style="resize:none" placeholder="请输入作业内容..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">截止日期（可选）</label>
+                    <input type="date" id="hw-due" class="input">
+                </div>
+                <button onclick="app.addHomework()" class="btn btn-primary w-full">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"><span id="toast-msg"></span></div>
+
+    <script>
+    // ==================== Firebase 配置 ====================
+    // 注意：部署前需要替换为您的 Firebase 配置
+    const firebaseConfig = {
+        apiKey: "AIzaSyDbMYqdJ3r7rBG3w6aIZ7Ag5D2nr5HnPA8",
+        authDomain: "ielts-scheduler.firebaseapp.com",
+        databaseURL: "https://ielts-schedule34-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ielts-scheduler",
+        storageBucket: "ielts-scheduler.firebasestorage.app",
+        messagingSenderId: "395579285187",
+        appId: "1:395579285187:web:7ed877a637663853d40c76"
+    };
+
+    // 初始化 Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+
+    // ==================== 常量定义 ====================
+    const SUBJECTS = { listening: '听力', speaking: '口语', reading: '阅读', writing: '写作' };
+    const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
+    const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
+    const TIME_SLOTS = [];
+    for (let h = 8; h < 22; h++) {
+        TIME_SLOTS.push({ start: `${String(h).padStart(2, '0')}:00`, end: `${String(h).padStart(2, '0')}:30` });
+        TIME_SLOTS.push({ start: `${String(h).padStart(2, '0')}:30`, end: `${String(h + 1).padStart(2, '0')}:00` });
+    }
+
+    // 默认用户
+    const DEFAULT_USERS = [
+        { id: '1', name: '听力老师', color: '#3B82F6', role: 'teacher', subject: 'listening' },
+        { id: '2', name: '口语老师', color: '#10B981', role: 'teacher', subject: 'speaking' },
+        { id: '3', name: '阅读老师', color: '#F59E0B', role: 'teacher', subject: 'reading' },
+        { id: '4', name: '写作老师', color: '#EF4444', role: 'teacher', subject: 'writing' },
+        { id: '5', name: '学生', color: '#8B5CF6', role: 'student' },
+        { id: '6', name: '班主任', color: '#EC4899', role: 'admin' }
+    ];
+
+    // ==================== 主应用类 ====================
+    class App {
+        constructor() {
+            this.currentUser = null;
+            this.users = [...DEFAULT_USERS];
+            this.availabilities = [];
+            this.schedules = [];
+            this.homework = [];
+            this.notice = '';
+            this.memo = '';
+            this.currentDate = new Date();
+            this.viewMode = 'week';
+            this.timeModalData = null;
+            this.history = [];
+            this.historyIndex = -1;
+            this.maxHistory = 20;
+            this.dataRef = database.ref('ielts-scheduler');
+            this.isOnline = false;
+            
+            this.init();
+        }
+
+        // 初始化
+        async init() {
+            // 监听网络状态
+            this.monitorConnection();
+            
+            // 匿名登录
+            try {
+                await auth.signInAnonymously();
+                console.log('已匿名登录');
+            } catch (error) {
+                console.error('登录失败:', error);
+            }
+
+            // 监听数据变化（实时同步）
+            this.dataRef.on('value', (snapshot) => {
+                const data = snapshot.val() || {};
+                this.loadFromFirebase(data);
+            });
+
+            // 渲染登录页
+            this.renderLogin();
+        }
+
+        // 监听网络连接
+        monitorConnection() {
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snap) => {
+                this.isOnline = snap.val() === true;
+                this.updateConnectionStatus();
+            });
+        }
+
+        // 更新连接状态显示
+        updateConnectionStatus() {
+            const statusEl = document.getElementById('sync-status');
+            const connEl = document.getElementById('connection-status');
+            
+            if (this.isOnline) {
+                statusEl.classList.remove('hidden');
+                statusEl.classList.remove('offline');
+                statusEl.classList.add('online');
+                statusEl.textContent = '已同步';
+                if (connEl) connEl.textContent = '已连接到云端';
+            } else {
+                statusEl.classList.remove('hidden');
+                statusEl.classList.remove('online');
+                statusEl.classList.add('offline');
+                statusEl.textContent = '离线';
+                if (connEl) connEl.textContent = '离线模式 - 数据将在联网后同步';
+            }
+        }
+
+        // 从 Firebase 加载数据
+        loadFromFirebase(data) {
+            this.users = data.users || [...DEFAULT_USERS];
+            this.availabilities = data.availabilities || [];
+            this.schedules = data.schedules || [];
+            this.homework = data.homework || [];
+            this.notice = data.notice || '';
+            this.memo = data.memo || '';
+
+            // 更新 UI
+            if (this.currentUser) {
+                this.updateAll();
+                this.loadNotice();
+                this.loadMemo();
+            } else {
+                document.getElementById('connection-status').textContent = '数据已加载，请选择身份';
+                document.getElementById('user-list').classList.remove('hidden');
+                document.getElementById('first-use-hint').classList.remove('hidden');
+            }
+        }
+
+        // 保存到 Firebase
+        async saveToFirebase() {
+            const data = {
+                users: this.users,
+                availabilities: this.availabilities,
+                schedules: this.schedules,
+                homework: this.homework,
+                notice: this.notice,
+                memo: this.memo,
+                lastUpdate: Date.now()
+            };
+            
+            try {
+                await this.dataRef.set(data);
+                return true;
+            } catch (error) {
+                console.error('保存失败:', error);
+                this.toast('保存失败，请检查网络');
+                return false;
+            }
+        }
+
+        // 工具方法
+        fmt(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        roleLabel(r) { return r === 'teacher' ? '老师' : r === 'student' ? '学生' : '班主任'; }
+        toast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        // 渲染登录页
+        renderLogin() {
+            document.getElementById('user-list').innerHTML = this.users.map(u => `
+                <button onclick="app.login('${u.id}')" class="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg w-full text-left" style="transition:background .15s">
+                    <div class="avatar w-10" style="background:${u.color}">${u.name[0]}</div>
+                    <div><div class="font-medium">${u.name}</div><div class="text-sm text-gray-500">${this.roleLabel(u.role)}${u.subject ? ' · ' + SUBJECTS[u.subject] : ''}</div></div>
+                </button>`).join('');
+        }
+
+        // 登录
+        login(id) {
+            this.currentUser = this.users.find(u => u.id === id);
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-page').classList.remove('hidden');
+            this.updateAll();
+            this.loadNotice();
+            this.loadMemo();
+            this.toast(`欢迎，${this.currentUser.name}！`);
+        }
+
+        // 登出
+        logout() {
+            this.currentUser = null;
+            document.getElementById('main-page').classList.add('hidden');
+            document.getElementById('login-page').classList.remove('hidden');
+        }
+
+        // 更新所有 UI
+        updateAll() {
+            this.updateHeader();
+            this.updateSidebar();
+            this.updateHomework();
+            this.updateViewBtns();
+            this.renderCalendar();
+        }
+
+        updateHeader() {
+            const u = this.currentUser;
+            document.getElementById('current-user-name').textContent = u.name;
+            const a = document.getElementById('current-user-avatar');
+            a.style.background = u.color;
+            a.textContent = u.name[0];
+        }
+
+        updateSidebar() {
+            const u = this.currentUser;
+            document.getElementById('sidebar-name').textContent = u.name;
+            document.getElementById('sidebar-role').textContent = u.role === 'teacher' ? '老师 · ' + SUBJECTS[u.subject] : this.roleLabel(u.role);
+            const a = document.getElementById('sidebar-avatar');
+            a.style.background = u.color;
+            a.textContent = u.name[0];
+            document.getElementById('add-hw-btn').classList.toggle('hidden', u.role !== 'teacher' && u.role !== 'admin');
+            document.getElementById('accounts-list').innerHTML = this.users.map(t => `
+                <div class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                    <div class="w-4" style="background:${t.color};border-radius:50%;height:16px"></div>
+                    <span class="text-sm">${t.name}</span>
+                    <span class="text-xs text-gray-400 ml-auto">${t.role === 'teacher' ? SUBJECTS[t.subject] : this.roleLabel(t.role)}</span>
+                </div>`).join('');
+        }
+
+        updateHomework() {
+            const c = document.getElementById('homework-list');
+            if (!this.homework.length) { c.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">暂无作业</div>'; return; }
+            c.innerHTML = this.homework.map(hw => {
+                const t = this.users.find(u => u.id === hw.teacher_id);
+                const canDel = (this.currentUser.role === 'teacher' && this.currentUser.id === hw.teacher_id) || this.currentUser.role === 'admin';
+                return `<div class="text-sm border-b pb-2 last-border-0">
+                    <div class="flex items-center gap-2 mb-1"><div class="w-2" style="background:${t?.color || '#ccc'};border-radius:50%;height:8px"></div><span class="font-medium">${SUBJECTS[hw.subject]}</span>
+                    ${canDel ? `<button onclick="app.deleteHomework('${hw.id}')" class="ml-auto text-red-400 hover:text-red-600" style="font-size:12px">🗑</button>` : ''}</div>
+                    <p class="text-gray-600">${hw.content}</p>
+                    ${hw.due_date ? `<p class="text-xs text-gray-400 mt-1">截止: ${hw.due_date}</p>` : ''}</div>`;
+            }).join('');
+        }
+
+        updateViewBtns() {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + this.viewMode).classList.add('active');
+            const d = this.currentDate;
+            document.getElementById('current-date-display').textContent = this.viewMode === 'month' ? d.getFullYear() + '年' + (d.getMonth() + 1) + '月' : (d.getMonth() + 1) + '月' + d.getDate() + '日';
+        }
+
+        renderCalendar() {
+            const c = document.getElementById('calendar-container');
+            if (this.viewMode === 'month') c.innerHTML = this.renderMonth();
+            else if (this.viewMode === 'week') c.innerHTML = this.renderWeek();
+            else c.innerHTML = this.renderDay();
+        }
+
+        // 渲染月视图（简化版）
+        renderMonth() {
+            return '<div class="text-center py-8 text-gray-500">月视图开发中，请使用周视图</div>';
+        }
+
+        // 渲染周视图
+        renderWeek() {
+            const ws = new Date(this.currentDate); ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7));
+            const today = new Date();
+            const SLOT_H = 50;
+            const toMin = (t) => { const [h, m] = t.split(':').map(Number); return (h - 8) * 60 + m; };
+            const toTop = (min) => (min / 30) * SLOT_H;
+            const toHeight = (s, e) => ((e - s) / 30) * SLOT_H;
+
+            let h = '<div class="overflow-x-auto"><div class="min-w-800"><div style="display:grid;grid-template-columns:80px repeat(7,1fr)">';
+            h += '<div class="text-center py-2 font-medium text-gray-600 bg-gray-100">时间</div>';
+            for (let i = 0; i < 7; i++) { const dt = new Date(ws); dt.setDate(ws.getDate() + i); const isT = dt.toDateString() === today.toDateString();
+                h += `<div onclick="app.goDay('${this.fmt(dt)}')" class="text-center py-2 font-medium cursor-pointer ${isT ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}"><div>${WEEKDAYS[i]}</div><div class="text-sm">${dt.getMonth() + 1}/${dt.getDate()}</div></div>`; }
+            h += '<div>';
+            TIME_SLOTS.forEach(slot => { h += `<div class="text-center text-xs text-gray-500 bg-gray-50" style="height:${SLOT_H}px;line-height:${SLOT_H}px">${slot.start}</div>`; });
+            h += '</div>';
+            for (let i = 0; i < 7; i++) {
+                const dt = new Date(ws); dt.setDate(ws.getDate() + i); const ds = this.fmt(dt);
+                h += `<div class="week-col" style="height:calc(28 * ${SLOT_H}px)" onclick="app.openTimeModal('${ds}','08:00','09:00')">`;
+                TIME_SLOTS.forEach(() => { h += `<div class="week-slot-line" style="height:${SLOT_H}px"></div>`; });
+                const timeGroups = this.getTimeGroups(ds);
+                timeGroups.forEach(group => {
+                    const sMin = toMin(group.start), eMin = toMin(group.end);
+                    const top = toTop(sMin);
+                    const height = Math.max(toHeight(sMin, eMin), SLOT_H);
+                    let cls = 'week-block';
+                    let labels = [];
+                    let hasPending = false, pendingId = '', pendingTeacherId = '';
+                    if (group.confirmed.length > 0) {
+                        cls += ' confirmed';
+                        group.confirmed.forEach(b => {
+                            const teacher = this.users.find(u => u.id === b.teacher_id);
+                            labels.push(`<span style="color:${teacher?.color || '#3b82f6'}">● ${teacher?.name || ''}</span> ${SUBJECTS[b.subject] || ''} ${b.start_time}-${b.end_time}`);
+                        });
+                    } else if (group.pending.length > 0) {
+                        hasPending = true;
+                        const pending = group.pending[0];
+                        pendingId = pending.id;
+                        pendingTeacherId = pending.teacher_id;
+                        cls += ' pending';
+                        group.pending.forEach(b => {
+                            const teacher = this.users.find(u => u.id === b.teacher_id);
+                            const subject = b.subject ? SUBJECTS[b.subject] : '待确认';
+                            labels.push(`<span style="color:${teacher?.color || '#f97316'}">● ${teacher?.name || ''}</span> ${subject} ${b.start_time}-${b.end_time}`);
+                        });
+                    } else {
+                        if (group.teacherAvail.length > 0) {
+                            cls += ' teacher-avail';
+                            group.teacherAvail.forEach(a => {
+                                const teacher = this.users.find(u => u.id === a.user_id);
+                                const subject = teacher?.subject ? SUBJECTS[teacher.subject] : '';
+                                labels.push(`<span style="color:${teacher?.color || '#10b981'}">● ${teacher?.name || ''}</span> ${subject} ${a.start_time}-${a.end_time}`);
+                            });
+                        }
+                        if (group.studentAvail.length > 0) {
+                            if (group.teacherAvail.length === 0) cls += ' student-avail';
+                            labels.push(`<span style="color:#3b82f6">● 学生</span> ${group.studentAvail[0].start_time}-${group.studentAvail[0].end_time}`);
+                        }
+                    }
+                    let confirmBtn = '';
+                    if (hasPending && (this.currentUser.role === 'teacher' || this.currentUser.role === 'admin')) {
+                        const isTeacherForThis = this.currentUser.role === 'teacher' && this.currentUser.id === pendingTeacherId;
+                        const isAdmin = this.currentUser.role === 'admin';
+                        if (isTeacherForThis || isAdmin) {
+                            confirmBtn = `<div style="margin-top:4px"><button onclick="event.stopPropagation();app.confirmSchedule('${pendingId}')" class="btn btn-sm" style="background:#10b981;color:#fff;padding:2px 8px;font-size:11px">确认排课</button></div>`;
+                        }
+                    }
+                    const labelHtml = labels.join('<br>');
+                    h += `<div class="${cls}" style="top:${top}px;height:${height}px" onclick="event.stopPropagation();app.openTimeModal('${ds}','${group.start}','${group.end}')">${labelHtml}${confirmBtn}</div>`;
+                });
+                h += '</div>';
+            }
+            return h + '</div></div></div>';
+        }
+
+        // 渲染日视图（简化版）
+        renderDay() {
+            const dt = this.currentDate;
+            const ds = this.fmt(dt);
+            return `<div class="space-y-2"><div class="text-center py-3 bg-gray-100 font-medium">${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日</div>
+                <div onclick="app.openTimeModal('${ds}','08:00','09:00')" class="text-gray-400 text-center py-8" style="cursor:pointer">点击添加安排</div></div>`;
+        }
+
+        // 获取时间段分组
+        getTimeGroups(ds) {
+            const groups = [];
+            const teacherAvail = this.availabilities.filter(a => a.date === ds && this.users.find(u => u.id === a.user_id)?.role === 'teacher');
+            const studentAvail = this.availabilities.filter(a => a.date === ds && this.users.find(u => u.id === a.user_id)?.role === 'student');
+            const pending = this.schedules.filter(s => s.date === ds && s.status === 'pending');
+            const confirmed = this.schedules.filter(s => s.date === ds && s.status === 'confirmed');
+            const timeRanges = new Map();
+            const addRange = (start, end, type, item) => {
+                const key = `${start}-${end}`;
+                if (!timeRanges.has(key)) timeRanges.set(key, { start, end, teacherAvail: [], studentAvail: [], pending: [], confirmed: [] });
+                timeRanges.get(key)[type].push(item);
+            };
+            teacherAvail.forEach(a => addRange(a.start_time, a.end_time, 'teacherAvail', a));
+            studentAvail.forEach(a => addRange(a.start_time, a.end_time, 'studentAvail', a));
+            pending.forEach(s => addRange(s.start_time, s.end_time, 'pending', s));
+            confirmed.forEach(s => addRange(s.start_time, s.end_time, 'confirmed', s));
+            return Array.from(timeRanges.values()).sort((a, b) => a.start.localeCompare(b.start));
+        }
+
+        // 时间弹窗
+        openTimeModal(ds, start, end) {
+            const safeDate = ds || this.fmt(new Date());
+            const safeStart = start || '08:00';
+            const safeEnd = end || '09:00';
+            this.timeModalData = { date: safeDate, start: safeStart, end: safeEnd };
+            document.getElementById('time-start').value = safeStart;
+            document.getElementById('time-end').value = safeEnd;
+            const btnAvail = document.getElementById('btn-avail');
+            const btnReq = document.getElementById('btn-request');
+            const btnAdminAvail = document.getElementById('btn-admin-avail');
+            const btnAdmin = document.getElementById('btn-admin-schedule');
+            const adminSection = document.getElementById('admin-schedule-section');
+            const studentTeacherSection = document.getElementById('student-teacher-section');
+            const btnDelete = document.getElementById('btn-delete-time');
+            btnAvail.style.display = 'none';
+            btnReq.style.display = 'none';
+            btnAdminAvail.classList.add('hidden');
+            btnAdmin.classList.add('hidden');
+            adminSection.classList.add('hidden');
+            studentTeacherSection.classList.add('hidden');
+            btnDelete.style.display = 'none';
+            const existingAvail = this.availabilities.find(a => a.user_id === this.currentUser.id && a.date === safeDate && a.start_time <= safeStart && a.end_time >= safeEnd);
+            const existingSched = this.schedules.find(s => (s.student_id === this.currentUser.id || s.teacher_id === this.currentUser.id) && s.date === safeDate && s.start_time <= safeStart && s.end_time >= safeEnd);
+            if (this.currentUser.role === 'admin') {
+                adminSection.classList.remove('hidden');
+                btnAdminAvail.classList.remove('hidden');
+                btnAdmin.classList.remove('hidden');
+                const select = document.getElementById('schedule-for');
+                select.innerHTML = '<option value="">-- 选择人员 --</option>' + this.users.map(u => `<option value="${u.id}">${u.name} (${this.roleLabel(u.role)}${u.subject ? ' · ' + SUBJECTS[u.subject] : ''})</option>`).join('');
+                const anyAvail = this.availabilities.find(a => a.date === safeDate && a.start_time <= safeStart && a.end_time >= safeEnd);
+                const anySched = this.schedules.find(s => s.date === safeDate && s.start_time <= safeStart && s.end_time >= safeEnd);
+                if (anyAvail || anySched) btnDelete.style.display = 'block';
+            } else if (this.currentUser.role === 'teacher') {
+                btnAvail.style.display = 'block';
+                btnAvail.textContent = existingAvail ? '取消空闲' : '标记空闲';
+                if (existingAvail || existingSched) btnDelete.style.display = 'block';
+            } else if (this.currentUser.role === 'student') {
+                btnAvail.style.display = 'block';
+                btnAvail.textContent = existingAvail ? '取消空闲' : '标记空闲';
+                btnReq.style.display = 'block';
+                btnReq.textContent = existingSched ? '取消预约' : '预约课程';
+                if (existingAvail || existingSched) btnDelete.style.display = 'block';
+                if (!existingSched) {
+                    const availTeachers = this.availabilities.filter(a => a.date === safeDate && a.start_time <= safeStart && a.end_time >= safeEnd && this.users.find(u => u.id === a.user_id)?.role === 'teacher');
+                    if (availTeachers.length > 0) {
+                        studentTeacherSection.classList.remove('hidden');
+                        const teacherSelect = document.getElementById('teacher-select');
+                        teacherSelect.innerHTML = '<option value="">-- 选择老师 --</option>' + availTeachers.map(a => {
+                            const teacher = this.users.find(u => u.id === a.user_id);
+                            return `<option value="${a.user_id}">${teacher?.name || ''} (${teacher?.subject ? SUBJECTS[teacher.subject] : ''})</option>`;
+                        }).join('');
+                    }
+                }
+            }
+            document.getElementById('time-modal').classList.remove('hidden');
+        }
+
+        closeTimeModal() { document.getElementById('time-modal').classList.add('hidden'); }
+
+        async confirmTimeAction(action) {
+            const start = document.getElementById('time-start').value, end = document.getElementById('time-end').value;
+            if (!start || !end || !/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) { this.toast('请输入正确的时间格式'); return; }
+            if (start >= end) { this.toast('结束时间必须晚于开始时间'); return; }
+            const ds = this.timeModalData.date;
+            this.pushHistory();
+            if (action === 'avail') this.toggleAvail(ds, start, end, this.currentUser.id);
+            else if (action === 'request') this.requestSchedule(ds, start, end);
+            else if (action === 'admin-avail') {
+                const targetId = document.getElementById('schedule-for').value;
+                if (!targetId) { this.toast('请选择人员'); return; }
+                this.toggleAvail(ds, start, end, targetId);
+            } else if (action === 'admin-schedule') {
+                const targetId = document.getElementById('schedule-for').value;
+                const subject = document.getElementById('schedule-subject').value;
+                if (!targetId) { this.toast('请选择人员'); return; }
+                this.adminSchedule(ds, start, end, targetId, subject);
+            }
+            await this.saveToFirebase();
+            this.closeTimeModal();
+        }
+
+        async deleteTimeSlot() {
+            this.pushHistory();
+            const ds = this.timeModalData.date;
+            const start = this.timeModalData.start;
+            const end = this.timeModalData.end;
+            if (this.currentUser.role === 'admin') {
+                const confirmedSched = this.schedules.filter(s => s.date === ds && s.start_time <= end && s.end_time >= start && s.status === 'confirmed');
+                const pendingSched = this.schedules.filter(s => s.date === ds && s.start_time <= end && s.end_time >= start && s.status === 'pending');
+                if (confirmedSched.length > 0 || pendingSched.length > 0) {
+                    this.schedules = this.schedules.filter(s => !(s.date === ds && s.start_time <= end && s.end_time >= start));
+                    await this.saveToFirebase();
+                    this.closeTimeModal();
+                    this.toast('已取消课程安排');
+                    return;
+                }
+                const availToDelete = this.availabilities.filter(a => a.date === ds && a.start_time <= end && a.end_time >= start);
+                if (availToDelete.length > 0) {
+                    this.availabilities = this.availabilities.filter(a => !(a.date === ds && a.start_time <= end && a.end_time >= start));
+                    await this.saveToFirebase();
+                    this.closeTimeModal();
+                    this.toast('已删除空闲时间');
+                    return;
+                }
+                this.toast('该时间段没有可删除的安排');
+            } else {
+                const availToDelete = this.availabilities.filter(a => a.user_id === this.currentUser.id && a.date === ds && a.start_time <= end && a.end_time >= start);
+                const schedToDelete = this.schedules.filter(s => (s.student_id === this.currentUser.id || s.teacher_id === this.currentUser.id) && s.date === ds && s.start_time <= end && s.end_time >= start);
+                if (availToDelete.length === 0 && schedToDelete.length === 0) { this.toast('该时间段没有可删除的安排'); return; }
+                this.availabilities = this.availabilities.filter(a => !(a.user_id === this.currentUser.id && a.date === ds && a.start_time <= end && a.end_time >= start));
+                this.schedules = this.schedules.filter(s => !((s.student_id === this.currentUser.id || s.teacher_id === this.currentUser.id) && s.date === ds && s.start_time <= end && s.end_time >= start));
+                await this.saveToFirebase();
+                this.closeTimeModal();
+                this.toast('已删除');
+            }
+        }
+
+        toggleAvail(ds, start, end, userId) {
+            const uid = userId || this.currentUser.id;
+            const existing = this.availabilities.find(a => a.user_id === uid && a.date === ds && a.start_time === start && a.end_time === end);
+            if (existing) { this.availabilities = this.availabilities.filter(a => a.id !== existing.id); this.toast('已取消空闲标记'); }
+            else { this.availabilities.push({ id: Date.now().toString(), user_id: uid, date: ds, start_time: start, end_time: end }); this.toast('已标记为空闲'); }
+        }
+
+        requestSchedule(ds, start, end) {
+            const student = this.users.find(u => u.role === 'student');
+            const existing = this.schedules.find(s => s.student_id === student.id && s.date === ds && s.start_time === start && s.end_time === end);
+            if (existing) { this.schedules = this.schedules.filter(s => s.id !== existing.id); this.toast('已取消预约'); }
+            else {
+                const teacherSelect = document.getElementById('teacher-select');
+                let teacherId = teacherSelect?.value;
+                if (!teacherId) {
+                    const availTeachers = this.availabilities.filter(a => a.date === ds && a.start_time <= start && a.end_time >= end && this.users.find(u => u.id === a.user_id)?.role === 'teacher');
+                    if (!availTeachers.length) { this.toast('该时间段没有空闲老师'); return; }
+                    teacherId = availTeachers[0].user_id;
+                }
+                const teacher = this.users.find(u => u.id === teacherId);
+                this.schedules.push({ id: Date.now().toString(), teacher_id: teacherId, student_id: student.id, subject: teacher?.subject || null, date: ds, start_time: start, end_time: end, status: 'pending' });
+                this.toast('预约请求已发送');
+            }
+        }
+
+        adminSchedule(ds, start, end, targetId, subject) {
+            const target = this.users.find(u => u.id === targetId);
+            if (!target) { this.toast('未找到该用户'); return; }
+            const student = this.users.find(u => u.role === 'student');
+            const existing = this.schedules.find(s => s.date === ds && s.start_time === start && s.end_time === end);
+            if (existing) { this.schedules = this.schedules.filter(s => s.id !== existing.id); this.toast('已取消该课程'); return; }
+            if (target.role === 'teacher') {
+                this.schedules.push({ id: Date.now().toString(), teacher_id: target.id, student_id: student.id, subject: target.subject || subject, date: ds, start_time: start, end_time: end, status: 'confirmed' });
+                this.toast('已排课');
+            } else if (target.role === 'student') {
+                const teachers = this.users.filter(u => u.role === 'teacher' && u.subject === subject);
+                if (!teachers.length) { this.toast('该科目暂无老师'); return; }
+                this.schedules.push({ id: Date.now().toString(), teacher_id: teachers[0].id, student_id: target.id, subject, date: ds, start_time: start, end_time: end, status: 'confirmed' });
+                this.toast('已排课');
+            }
+        }
+
+        async confirmSchedule(id) {
+            this.pushHistory();
+            const s = this.schedules.find(x => x.id === id);
+            if (s) { s.status = 'confirmed'; await this.saveToFirebase(); this.toast('课程已确认'); }
+        }
+
+        // 历史记录管理
+        pushHistory() {
+            const state = { availabilities: JSON.parse(JSON.stringify(this.availabilities)), schedules: JSON.parse(JSON.stringify(this.schedules)), homework: JSON.parse(JSON.stringify(this.homework)) };
+            this.history = this.history.slice(0, this.historyIndex + 1);
+            this.history.push(state);
+            if (this.history.length > this.maxHistory) { this.history.shift(); } else { this.historyIndex++; }
+            this.updateUndoBtn();
+        }
+
+        async undo() {
+            if (this.historyIndex < 0) return;
+            const state = this.history[this.historyIndex];
+            this.availabilities = JSON.parse(JSON.stringify(state.availabilities));
+            this.schedules = JSON.parse(JSON.stringify(state.schedules));
+            this.homework = JSON.parse(JSON.stringify(state.homework));
+            this.historyIndex--;
+            await this.saveToFirebase();
+            this.updateUndoBtn();
+            this.toast('已撤销');
+        }
+
+        updateUndoBtn() {
+            const btn = document.getElementById('undo-btn');
+            if (this.historyIndex >= 0) { btn.disabled = false; btn.style.opacity = '1'; } else { btn.disabled = true; btn.style.opacity = '0.5'; }
+        }
+
+        // 作业相关
+        openHomeworkModal() {
+            if (this.currentUser.role === 'admin') {
+                document.getElementById('hw-subject').innerHTML = Object.entries(SUBJECTS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+            }
+            document.getElementById('hw-subject').value = this.currentUser.subject || 'listening';
+            document.getElementById('hw-content').value = '';
+            document.getElementById('hw-due').value = '';
+            document.getElementById('homework-modal').classList.remove('hidden');
+        }
+
+        closeHomeworkModal() { document.getElementById('homework-modal').classList.add('hidden'); }
+
+        async addHomework() {
+            this.pushHistory();
+            const subj = document.getElementById('hw-subject').value, content = document.getElementById('hw-content').value.trim(), due = document.getElementById('hw-due').value;
+            if (!content) { this.toast('请输入作业内容'); return; }
+            this.homework.push({ id: Date.now().toString(), teacher_id: this.currentUser.id, subject: subj, content, due_date: due, created_at: new Date().toISOString() });
+            await this.saveToFirebase();
+            this.closeHomeworkModal();
+            this.updateHomework();
+            this.toast('作业已添加');
+        }
+
+        async deleteHomework(id) {
+            this.pushHistory();
+            this.homework = this.homework.filter(h => h.id !== id);
+            await this.saveToFirebase();
+            this.updateHomework();
+            this.toast('作业已删除');
+        }
+
+        // 设置相关
+        openSettings() {
+            document.getElementById('setting-name').value = this.currentUser.name;
+            document.getElementById('color-picker').innerHTML = COLORS.map(c => `<button onclick="app.pickColor('${c}')" class="w-8 h-8 rounded-full ${this.currentUser.color === c ? 'ring-2 ring-offset-2 ring-blue-500' : ''}" style="background:${c}"></button>`).join('');
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+        pickColor(c) { this.currentUser.color = c; document.querySelectorAll('#color-picker button').forEach(b => { b.classList.toggle('ring-2', b.getAttribute('style').includes(c)); }); }
+
+        async saveSettings() {
+            this.currentUser.name = document.getElementById('setting-name').value;
+            const i = this.users.findIndex(u => u.id === this.currentUser.id);
+            if (i >= 0) this.users[i] = this.currentUser;
+            await this.saveToFirebase();
+            this.closeSettings();
+            this.updateAll();
+            this.toast('设置已保存');
+        }
+
+        // 通知和 Memo
+        loadNotice() {
+            const el = document.getElementById('notice-text');
+            if (el) el.value = this.notice;
+        }
+
+        async saveNotice() {
+            this.notice = document.getElementById('notice-text').value;
+            await this.saveToFirebase();
+        }
+
+        loadMemo() {
+            const el = document.getElementById('memo-text');
+            if (el) el.value = this.memo;
+        }
+
+        async saveMemo() {
+            this.memo = document.getElementById('memo-text').value;
+            await this.saveToFirebase();
+        }
+
+        // 视图控制
+        setViewMode(m) { this.viewMode = m; this.updateViewBtns(); this.renderCalendar(); }
+        prevPeriod() { if (this.viewMode === 'month') this.currentDate.setMonth(this.currentDate.getMonth() - 1); else if (this.viewMode === 'week') this.currentDate.setDate(this.currentDate.getDate() - 7); else this.currentDate.setDate(this.currentDate.getDate() - 1); this.updateViewBtns(); this.renderCalendar(); }
+        nextPeriod() { if (this.viewMode === 'month') this.currentDate.setMonth(this.currentDate.getMonth() + 1); else if (this.viewMode === 'week') this.currentDate.setDate(this.currentDate.getDate() + 7); else this.currentDate.setDate(this.currentDate.getDate() + 1); this.updateViewBtns(); this.renderCalendar(); }
+        goDay(ds) { this.currentDate = new Date(ds); this.setViewMode('day'); }
+    }
+
+    // 启动应用
+    const app = new App();
+
+    // 绑定通知和 Memo 输入事件
+    document.addEventListener('DOMContentLoaded', () => {
+        const noticeEl = document.getElementById('notice-text');
+        const memoEl = document.getElementById('memo-text');
+        if (noticeEl) noticeEl.addEventListener('input', () => app.saveNotice());
+        if (memoEl) memoEl.addEventListener('input', () => app.saveMemo());
+    });
+    </script>
+</body>
+</html>
